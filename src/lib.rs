@@ -71,13 +71,13 @@ mod xrc20 {
 
         #[ink(constructor)]
         fn new(&mut self, init_value: u64, name: Text, symbol: Text, decimals: u16) {
-            assert!(env.caller() != AccountId::from([0; 32]));
+            assert!(self.env().caller() != AccountId::from([0; 32]));
             self.total_supply.set(init_value);
             self.name.set(name);
             self.symbol.set(symbol);
             self.decimals.set(decimals);
             self.balances.insert(env.caller(), init_value);
-            env.emit(Transfer {
+            self.env.emit_event(Transfer {
                 from: None,
                 to: Some(env.caller()),
                 value: init_value
@@ -128,16 +128,16 @@ mod xrc20 {
         /// Transfers token from the sender to the `to` AccountId.
         #[ink(message)]
         fn transfer(&mut self, to: AccountId, value: u64) -> bool {
-            self.transfer_impl(env, env.caller(), to, value)
+            self.transfer_impl(self.env().caller(), to, value)
         }
 
         /// Approve the passed AccountId to spend the specified amount of tokens
         /// on the behalf of the message's sender.
         #[ink(message)]
         fn approve(&mut self, spender: AccountId, value: u64) -> bool {
-            let owner = env.caller();
+            let owner = self.env().caller();
             self.allowances.insert((owner, spender), value);
-            env.emit(Approval {
+            self.env.emit_event(Approval {
                 owner: owner,
                 spender: spender,
                 value: value
@@ -148,12 +148,13 @@ mod xrc20 {
         /// Transfer tokens from one AccountId to another.
         #[ink(message)]
         fn transfer_from(&mut self, from: AccountId, to: AccountId, value: u64) -> bool {
-            let allowance = self.allowance_or_zero(&from, &env.caller());
+            let caller = self.env().caller();
+            let allowance = self.allowance_or_zero(&from, &caller);
             if allowance < value {
                 return false;
             }
-            self.allowances.insert((from, env.caller()), allowance - value);
-            self.transfer_impl(env, from, to, value)
+            self.allowances.insert((from, caller), allowance - value);
+            self.transfer_impl(from, to, value)
         }
 
         #[ink(message)]
@@ -161,7 +162,7 @@ mod xrc20 {
             assert!(to != AccountId::from([0; 32]));
             // notice just the contract instance self could call `issue`, do not allow user to
             // issue from other way.
-            assert_eq!(env.address(), env.caller());
+            assert_eq!(self.env().address(), self.env().caller());
 
             let balance = self.balance_of_or_zero(&to);
             let previous_total = *self.total_supply;
@@ -200,7 +201,7 @@ mod xrc20 {
             assert_eq!(previous_total + value, *self.total_supply);
 
             // print event
-            env.emit(Issue {
+            self.env().emit_event(Issue {
                 to: to,
                 value: value,
             });
@@ -238,7 +239,7 @@ mod xrc20 {
 
             if value == 0 {
                 // before set storage
-                env.emit(Destroy {
+                self.env().emit_event(Destroy {
                     owner: owner,
                     value: value,
                 });
@@ -252,21 +253,18 @@ mod xrc20 {
             assert_eq!(balance - value, self.balance_of_or_zero(&owner));
             assert_eq!(previous_total - value, *self.total_supply);
 
-            env.emit(Destroy {
+            self.env.emit_event(Destroy {
                 owner: owner,
                 value: value,
             });
 
             // Convert the destoried xrc20 Token to crosschain Asset in ChainX.
             let convert_to_asset_call = chainx_calls::XContracts::<DefaultXrmlTypes>::convert_to_asset(owner, value);
-            env.dispatch_call(convert_to_asset_call);
+            self.env().invoke_runtime(&convert_to_asset_call);
 
             true
         }
-    }
 
-    impl XRC20 {
-        /// Returns the balance of the AccountId or 0 if there is no balance.
         fn balance_of_or_zero(&self, of: &AccountId) -> u64 {
             *self.balances.get(of).unwrap_or(&0)
         }
@@ -277,7 +275,7 @@ mod xrc20 {
         }
 
         /// Transfers token from a specified AccountId to another AccountId.
-        fn transfer_impl(&mut self, env: &mut EnvHandler<ink_core::env::ContractEnv<DefaultXrmlTypes>>, from: AccountId, to: AccountId, value: u64) -> bool {
+        fn transfer_impl(&mut self, from: AccountId, to: AccountId, value: u64) -> bool {
             assert!(from != AccountId::from([0; 32]));
             assert!(to != AccountId::from([0; 32]));
 
@@ -304,7 +302,7 @@ mod xrc20 {
             // other logic
             if from == to || value == 0 {
                 // before set storage
-                env.emit(Transfer {
+                self.env().emit_event(Transfer {
                     from: Some(from),
                     to: Some(to),
                     value: value
@@ -319,14 +317,17 @@ mod xrc20 {
             // ensure total balance is equal to before
             assert_eq!(previous_balances, self.balance_of_or_zero(&from) + self.balance_of_or_zero(&to));
 
-            env.emit(Transfer {
+            self.env().emit_event(Transfer {
                 from: Some(from),
                 to: Some(to),
                 value: value
             });
             true
         }
+
+
     }
+  
 
 }
 
