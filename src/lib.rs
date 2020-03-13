@@ -10,39 +10,41 @@
 
 #![cfg_attr(not(feature = "std"), no_std)]
 
-use ink_core::{
-    env::{chainx_calls, DefaultXrmlTypes},
-    memory::vec::Vec,
-    storage,
-};
-use ink_lang::contract;
-use ink_model::EnvHandler;
+use ink_lang as ink;
 
-pub type Text = Vec<u8>;
+#[ink::contract(version = "0.1.0", env = DefaultXrmlTypes)]
+mod xrc20 {
 
-contract! {
-    #![env = DefaultXrmlTypes]
+    use ink_core::{
+        env::{chainx_calls, DefaultXrmlTypes},
+        memory::vec::Vec,
+        storage,
+    };
 
-    // Event deposited when a token transfer occurs
-    event Transfer {
+    pub type Text = Vec<u8>;
+
+    #[ink(event)]
+    struct Transfer {
         from: Option<AccountId>,
         to: Option<AccountId>,
         value: u64,
     }
 
-    // Event deposited when an approval occurs
-    event Approval {
+    #[ink(event)]
+    struct Approval {
         owner: AccountId,
         spender: AccountId,
         value: u64,
     }
 
-    event Issue {
+    #[ink(event)]
+    struct Issue {
         to: AccountId,
         value: u64,
     }
 
-    event Destroy {
+    #[ink(event)]
+    struct Destroy {
         owner: AccountId,
         value: u64,
     }
@@ -64,8 +66,10 @@ contract! {
         allowances: storage::HashMap<(AccountId, AccountId), u64>,
     }
 
-    impl Deploy for XRC20 {
-        fn deploy(&mut self, init_value: u64, name: Text, symbol: Text, decimals: u16) {
+    impl XRC20 {
+
+        #[ink(constructor)]
+        fn new(&mut self, init_value: u64, name: Text, symbol: Text, decimals: u16) {
             assert!(env.caller() != AccountId::from([0; 32]));
             self.total_supply.set(init_value);
             self.name.set(name);
@@ -78,52 +82,58 @@ contract! {
                 value: init_value
             });
         }
-    }
 
-    impl XRC20 {
         /// Returns the total number of tokens in existence.
-        pub(external) fn total_supply(&self) -> u64 {
+        #[ink(message)]
+        fn total_supply(&self) -> u64 {
             let total_supply = *self.total_supply;
             total_supply
         }
 
         /// Returns the balance of the given AccountId.
-        pub(external) fn balance_of(&self, owner: AccountId) -> u64 {
+        #[ink(message)]
+        fn balance_of(&self, owner: AccountId) -> u64 {
             let balance = self.balance_of_or_zero(&owner);
             balance
         }
 
         /// Returns the name of the token.
-        pub(external) fn name(&self) -> Text {
+        #[ink(message)]
+        fn name(&self) -> Text {
             let name = &*self.name;
             name.to_vec()
         }
 
         /// Returns the symbol of the token.
-        pub(external) fn symbol(&self) -> Text {
+        #[ink(message)]
+        fn symbol(&self) -> Text {
             let symbol = &*self.symbol;
             symbol.to_vec()
         }
 
         /// Returns the decimals of the token.
-        pub(external) fn decimals(&self) -> u16 {
+        #[ink(message)]
+        fn decimals(&self) -> u16 {
             *self.decimals
         }
 
         /// Returns the amount of tokens that an owner allowed to a spender.
-        pub(external) fn allowance(&self, owner: AccountId, spender: AccountId) -> u64 {
+        #[ink(message)]
+        fn allowance(&self, owner: AccountId, spender: AccountId) -> u64 {
             let allowance = self.allowance_or_zero(&owner, &spender);
             allowance
         }
 
         /// Transfers token from the sender to the `to` AccountId.
-        pub(external) fn transfer(&mut self, to: AccountId, value: u64) -> bool {
+        #[ink(message)]
+        fn transfer(&mut self, to: AccountId, value: u64) -> bool {
             self.transfer_impl(env, env.caller(), to, value)
         }
 
         /// Approve the passed AccountId to spend the specified amount of tokens
         /// on the behalf of the message's sender.
-        pub(external) fn approve(&mut self, spender: AccountId, value: u64) -> bool {
+        #[ink(message)]
+        fn approve(&mut self, spender: AccountId, value: u64) -> bool {
             let owner = env.caller();
             self.allowances.insert((owner, spender), value);
             env.emit(Approval {
@@ -135,7 +145,8 @@ contract! {
         }
 
         /// Transfer tokens from one AccountId to another.
-        pub(external) fn transfer_from(&mut self, from: AccountId, to: AccountId, value: u64) -> bool {
+        #[ink(message)]
+        fn transfer_from(&mut self, from: AccountId, to: AccountId, value: u64) -> bool {
             let allowance = self.allowance_or_zero(&from, &env.caller());
             if allowance < value {
                 return false;
@@ -143,8 +154,9 @@ contract! {
             self.allowances.insert((from, env.caller()), allowance - value);
             self.transfer_impl(env, from, to, value)
         }
-        
-        pub(external) fn issue(&mut self, to: AccountId, value: u64) -> bool {
+
+        #[ink(message)]
+        fn issue(&mut self, to: AccountId, value: u64) -> bool {
             assert!(to != AccountId::from([0; 32]));
             // notice just the contract instance self could call `issue`, do not allow user to
             // issue from other way.
@@ -194,7 +206,8 @@ contract! {
             true
         }
 
-        pub(external) fn destroy(&mut self, value: u64) -> bool {
+        #[ink(message)]
+        fn destroy(&mut self, value: u64) -> bool {
             let owner = env.caller();
             assert!(owner != AccountId::from([0; 32]));
 
@@ -313,7 +326,9 @@ contract! {
             true
         }
     }
+
 }
+
 
 #[cfg(all(test, feature = "test-env"))]
 mod tests {
