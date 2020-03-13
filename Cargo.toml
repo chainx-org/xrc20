@@ -5,10 +5,11 @@ authors = ["Parity Technologies <admin@parity.io>"]
 edition = "2018"
 
 [dependencies]
-ink_abi = { git = "https://github.com/chainx-org/ink", branch = "fix-events-encode", package = "ink_abi", default-features = false, features = ["derive"], optional = true }
-ink_core = { git = "https://github.com/chainx-org/ink", branch = "fix-events-encode", package = "ink_core", default-features = false, features = ["old-codec"] }
-ink_lang = { git = "https://github.com/chainx-org/ink", branch = "fix-events-encode", package = "ink_lang", default-features = false, features = ["old-codec"] }
-ink_prelude = { git = "https://github.com/chainx-org/ink", branch = "fix-events-encode", package = "ink_prelude", default-features = false }
+ink_abi = { git = "https://github.com/chainx-org/ink", branch = "env-revision3", package = "ink_abi", default-features = false, features = ["derive"], optional = true }
+ink_core = { git = "https://github.com/chainx-org/ink", branch = "env-revision3", package = "ink_core", default-features = false, features = ["old-codec"] }
+ink_lang = { git = "https://github.com/chainx-org/ink", branch = "env-revision3", package = "ink_lang", default-features = false, features = ["old-codec"] }
+ink_prelude = { git = "https://github.com/chainx-org/ink", branch = "env-revision3", package = "ink_prelude", default-features = false }
+ink_primitives = { git = "https://github.com/chainx-org/ink", branch = "env-revision3", package = "ink_primitives", default-features = false, features = ["old-codec"] }
 
 scale = { package = "parity-codec", version = "3.5", default-features = false, features = ["derive"] }
 type-metadata = { git = "https://github.com/type-metadata/type-metadata.git", default-features = false, features = ["derive"], optional = true }
@@ -34,7 +35,6 @@ std = [
 ]
 test-env = [
 	"std",
-    "ink_core/test-env",
     "ink_lang/test-env",
 ]
 ink-generate-abi = [

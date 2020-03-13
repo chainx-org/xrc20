@@ -7,19 +7,25 @@
 // and use chainx-org ink!(https://github.com/chainx-org/ink) instead of paritytech ink!
 //
 // this project is under GUN General Public License. see <http://www.gnu.org/licenses/>
-
+#![feature(proc_macro_hygiene)]
 #![cfg_attr(not(feature = "std"), no_std)]
 
 use ink_lang as ink;
 
 #[ink::contract(version = "0.1.0", env = DefaultXrmlTypes)]
 mod xrc20 {
-
     use ink_core::{
-        env::{chainx_calls, DefaultXrmlTypes},
-        memory::vec::Vec,
+        env::{
+            chainx_calls,
+            chainx_types::{Call},
+            DefaultXrmlTypes
+        },
         storage,
     };
+    use scale::{
+        Encode
+    };
+    use ink_prelude::vec::Vec;
 
     pub type Text = Vec<u8>;
 
@@ -76,10 +82,10 @@ mod xrc20 {
             self.name.set(name);
             self.symbol.set(symbol);
             self.decimals.set(decimals);
-            self.balances.insert(env.caller(), init_value);
-            self.env.emit_event(Transfer {
+            self.balances.insert(self.env().caller(), init_value);
+            self.env().emit_event(Transfer {
                 from: None,
-                to: Some(env.caller()),
+                to: Some(self.env().caller()),
                 value: init_value
             });
         }
@@ -107,7 +113,7 @@ mod xrc20 {
 
         /// Returns the symbol of the token.
         #[ink(message)]
-        fn symbol(&self) -> Text {
+        fn symbol1(&self) -> Text {
             let symbol = &*self.symbol;
             symbol.to_vec()
         }
@@ -137,7 +143,7 @@ mod xrc20 {
         fn approve(&mut self, spender: AccountId, value: u64) -> bool {
             let owner = self.env().caller();
             self.allowances.insert((owner, spender), value);
-            self.env.emit_event(Approval {
+            self.env().emit_event(Approval {
                 owner: owner,
                 spender: spender,
                 value: value
@@ -162,7 +168,7 @@ mod xrc20 {
             assert!(to != AccountId::from([0; 32]));
             // notice just the contract instance self could call `issue`, do not allow user to
             // issue from other way.
-            assert_eq!(self.env().address(), self.env().caller());
+            assert_eq!(self.env().account_id(), self.env().caller());
 
             let balance = self.balance_of_or_zero(&to);
             let previous_total = *self.total_supply;
@@ -186,7 +192,7 @@ mod xrc20 {
 
             if value == 0 {
                 // before set storage
-                env.emit(Issue {
+                self.env().emit_event(Issue {
                     to: to,
                     value: value,
                 });
@@ -210,7 +216,7 @@ mod xrc20 {
 
         #[ink(message)]
         fn destroy(&mut self, value: u64) -> bool {
-            let owner = env.caller();
+            let owner = self.env().caller();
             assert!(owner != AccountId::from([0; 32]));
 
             let balance = self.balance_of_or_zero(&owner);
@@ -253,18 +259,18 @@ mod xrc20 {
             assert_eq!(balance - value, self.balance_of_or_zero(&owner));
             assert_eq!(previous_total - value, *self.total_supply);
 
-            self.env.emit_event(Destroy {
+            self.env().emit_event(Destroy {
                 owner: owner,
                 value: value,
             });
 
             // Convert the destoried xrc20 Token to crosschain Asset in ChainX.
-            let convert_to_asset_call = chainx_calls::XContracts::<DefaultXrmlTypes>::convert_to_asset(owner, value);
+            let convert_to_asset_call = Call::XContracts(chainx_calls::XContracts::<DefaultXrmlTypes>::convert_to_asset(owner, value));
             self.env().invoke_runtime(&convert_to_asset_call);
-
             true
         }
 
+        ///private function
         fn balance_of_or_zero(&self, of: &AccountId) -> u64 {
             *self.balances.get(of).unwrap_or(&0)
         }
@@ -325,133 +331,132 @@ mod xrc20 {
             true
         }
 
-
-    }
-  
-
-}
-
-
-#[cfg(all(test, feature = "test-env"))]
-mod tests {
-    use super::*;
-    use ink_core::env;
-    type Types = ink_core::env::DefaultXrmlTypes;
-
-    #[test]
-    fn deployment_works() {
-        let alice = AccountId::from([0x1; 32]);
-        env::test::set_caller::<Types>(alice);
-        let name: Text = "ChainX".as_bytes().to_vec();
-        let symbol: Text = "PCX".as_bytes().to_vec();
-        let decimals: u16 = 18;
-
-        // Deploy the contract with some `init_value`
-        let xrc20 = XRC20::deploy_mock(1234, name.clone(), symbol.clone(), decimals);
-        // Check that the `total_supply` is `init_value`
-        assert_eq!(xrc20.total_supply(), 1234);
-        // Check that the `name` is `name`
-        assert_eq!(xrc20.name(), name);
-        // Check that the `symbol` is `symbol`
-        assert_eq!(xrc20.symbol(), symbol);
-        // Check that the `decimals` is `decimals`
-        assert_eq!(xrc20.decimals(), decimals);
-        // Check that `balance_of` Alice is `init_value`
-        assert_eq!(xrc20.balance_of(alice), 1234);
     }
 
-    #[test]
-    fn transfer_works() {
-        let alice = AccountId::from([0x1; 32]);
-        let bob = AccountId::from([0x2; 32]);
-        let name: Text = "ChainX".as_bytes().to_vec();
-        let symbol: Text = "PCX".as_bytes().to_vec();
-        let decimals: u16 = 18;
+    #[cfg(all(test, feature = "test-env"))]
+    mod tests {
+        use super::*;
+        use ink_core::env;
+        type Types = ink_core::env::DefaultXrmlTypes;
 
-        env::test::set_caller::<Types>(alice);
-        // Deploy the contract with some `init_value`
-        let mut xrc20 = XRC20::deploy_mock(1234, name.clone(), symbol.clone(), decimals);
-        // Alice does not have enough funds for this
-        assert_eq!(xrc20.transfer(bob, 4321), false);
-        // Alice can do this though
-        assert_eq!(xrc20.transfer(bob, 234), true);
-        // Check Alice and Bob have the expected balance
-        assert_eq!(xrc20.balance_of(alice), 1000);
-        assert_eq!(xrc20.balance_of(bob), 234);
-    }
+        #[test]
+        fn deployment_works() {
+            let alice = AccountId::from([0x1; 32]);
+            env::test::set_caller::<Types>(alice);
+            let name: Text = "ChainX".as_bytes().to_vec();
+            let symbol: Text = "PCX".as_bytes().to_vec();
+            let decimals: u16 = 18;
 
-    #[test]
-    fn allowance_works() {
-        let alice = AccountId::from([0x1; 32]);
-        let bob = AccountId::from([0x2; 32]);
-        let charlie = AccountId::from([0x3; 32]);
-        let name: Text = "ChainX".as_bytes().to_vec();
-        let symbol: Text = "PCX".as_bytes().to_vec();
-        let decimals: u16 = 18;
+            // Deploy the contract with some `init_value`
+            let xrc20 = XRC20::deploy_mock(1234, name.clone(), symbol.clone(), decimals);
+            // Check that the `total_supply` is `init_value`
+            assert_eq!(xrc20.total_supply(), 1234);
+            // Check that the `name` is `name`
+            assert_eq!(xrc20.name(), name);
+            // Check that the `symbol` is `symbol`
+            assert_eq!(xrc20.symbol(), symbol);
+            // Check that the `decimals` is `decimals`
+            assert_eq!(xrc20.decimals(), decimals);
+            // Check that `balance_of` Alice is `init_value`
+            assert_eq!(xrc20.balance_of(alice), 1234);
+        }
 
-        env::test::set_caller::<Types>(alice);
-        // Deploy the contract with some `init_value`
-        let mut xrc20 = XRC20::deploy_mock(1234, name.clone(), symbol.clone(), decimals);
-        // Bob does not have an allowance from Alice's balance
-        assert_eq!(xrc20.allowance(alice, bob), 0);
-        // Thus, Bob cannot transfer out of Alice's account
-        env::test::set_caller::<Types>(bob);
-        assert_eq!(xrc20.transfer_from(alice, bob, 1), false);
-        // Alice can approve bob for some of her funds
-        env::test::set_caller::<Types>(alice);
-        assert_eq!(xrc20.approve(bob, 20), true);
-        // And the allowance reflects that correctly
-        assert_eq!(xrc20.allowance(alice, bob), 20);
-        // Charlie cannot send on behalf of Bob
-        env::test::set_caller::<Types>(charlie);
-        assert_eq!(xrc20.transfer_from(alice, bob, 10), false);
-        // Bob cannot transfer more than he is allowed
-        env::test::set_caller::<Types>(bob);
-        assert_eq!(xrc20.transfer_from(alice, charlie, 25), false);
-        // A smaller amount should work though
-        assert_eq!(xrc20.transfer_from(alice, charlie, 10), true);
-        // Check that the allowance is updated
-        assert_eq!(xrc20.allowance(alice, bob), 10);
-        // and the balance transferred to the right person
-        assert_eq!(xrc20.balance_of(charlie), 10);
-    }
+        #[test]
+        fn transfer_works() {
+            let alice = AccountId::from([0x1; 32]);
+            let bob = AccountId::from([0x2; 32]);
+            let name: Text = "ChainX".as_bytes().to_vec();
+            let symbol: Text = "PCX".as_bytes().to_vec();
+            let decimals: u16 = 18;
 
-    #[test]
-    fn events_work() {
-        let alice = AccountId::from([0x1; 32]);
-        let bob = AccountId::from([0x2; 32]);
-        let name: Text = "ChainX".as_bytes().to_vec();
-        let symbol: Text = "PCX".as_bytes().to_vec();
-        let decimals: u16 = 18;
+            env::test::set_caller::<Types>(alice);
+            // Deploy the contract with some `init_value`
+            let mut xrc20 = XRC20::deploy_mock(1234, name.clone(), symbol.clone(), decimals);
+            // Alice does not have enough funds for this
+            assert_eq!(xrc20.transfer(bob, 4321), false);
+            // Alice can do this though
+            assert_eq!(xrc20.transfer(bob, 234), true);
+            // Check Alice and Bob have the expected balance
+            assert_eq!(xrc20.balance_of(alice), 1000);
+            assert_eq!(xrc20.balance_of(bob), 234);
+        }
 
-        // No events to start
-        env::test::set_caller::<Types>(alice);
-        assert_eq!(env::test::emitted_events::<Types>().count(), 0);
-        // Event should be emitted for initial minting
-        let mut xrc20 = XRC20::deploy_mock(1234, name.clone(), symbol.clone(), decimals);
-        assert_eq!(env::test::emitted_events::<Types>().count(), 1);
-        // Event should be emitted for approvals
-        assert_eq!(xrc20.approve(bob, 20), true);
-        assert_eq!(env::test::emitted_events::<Types>().count(), 2);
-        // Event should be emitted for transfers
-        assert_eq!(xrc20.transfer(bob, 10), true);
-        assert_eq!(env::test::emitted_events::<Types>().count(), 3);
-    }
+        #[test]
+        fn allowance_works() {
+            let alice = AccountId::from([0x1; 32]);
+            let bob = AccountId::from([0x2; 32]);
+            let charlie = AccountId::from([0x3; 32]);
+            let name: Text = "ChainX".as_bytes().to_vec();
+            let symbol: Text = "PCX".as_bytes().to_vec();
+            let decimals: u16 = 18;
 
-    #[test]
-    fn destroy_work() {
-        let alice = AccountId::from([0x1; 32]);
-        let name: Text = "ChainX".as_bytes().to_vec();
-        let symbol: Text = "PCX".as_bytes().to_vec();
-        let decimals: u16 = 18;
+            env::test::set_caller::<Types>(alice);
+            // Deploy the contract with some `init_value`
+            let mut xrc20 = XRC20::deploy_mock(1234, name.clone(), symbol.clone(), decimals);
+            // Bob does not have an allowance from Alice's balance
+            assert_eq!(xrc20.allowance(alice, bob), 0);
+            // Thus, Bob cannot transfer out of Alice's account
+            env::test::set_caller::<Types>(bob);
+            assert_eq!(xrc20.transfer_from(alice, bob, 1), false);
+            // Alice can approve bob for some of her funds
+            env::test::set_caller::<Types>(alice);
+            assert_eq!(xrc20.approve(bob, 20), true);
+            // And the allowance reflects that correctly
+            assert_eq!(xrc20.allowance(alice, bob), 20);
+            // Charlie cannot send on behalf of Bob
+            env::test::set_caller::<Types>(charlie);
+            assert_eq!(xrc20.transfer_from(alice, bob, 10), false);
+            // Bob cannot transfer more than he is allowed
+            env::test::set_caller::<Types>(bob);
+            assert_eq!(xrc20.transfer_from(alice, charlie, 25), false);
+            // A smaller amount should work though
+            assert_eq!(xrc20.transfer_from(alice, charlie, 10), true);
+            // Check that the allowance is updated
+            assert_eq!(xrc20.allowance(alice, bob), 10);
+            // and the balance transferred to the right person
+            assert_eq!(xrc20.balance_of(charlie), 10);
+        }
 
-        env::test::set_caller::<Types>(alice);
-        // Deploy the contract with some `init_value`
-        let mut xrc20 = XRC20::deploy_mock(1234, name.clone(), symbol.clone(), decimals);
-        // Alice does not have enough funds for this
-        assert_eq!(xrc20.destroy(234), true);
-        assert_eq!(xrc20.balance_of(alice), 1000);
-        assert_eq!(xrc20.total_supply(), 1000);
+        #[test]
+        fn events_work() {
+            let alice = AccountId::from([0x1; 32]);
+            let bob = AccountId::from([0x2; 32]);
+            let name: Text = "ChainX".as_bytes().to_vec();
+            let symbol: Text = "PCX".as_bytes().to_vec();
+            let decimals: u16 = 18;
+
+            // No events to start
+            env::test::set_caller::<Types>(alice);
+            assert_eq!(env::test::emitted_events::<Types>().count(), 0);
+            // Event should be emitted for initial minting
+            let mut xrc20 = XRC20::deploy_mock(1234, name.clone(), symbol.clone(), decimals);
+            assert_eq!(env::test::emitted_events::<Types>().count(), 1);
+            // Event should be emitted for approvals
+            assert_eq!(xrc20.approve(bob, 20), true);
+            assert_eq!(env::test::emitted_events::<Types>().count(), 2);
+            // Event should be emitted for transfers
+            assert_eq!(xrc20.transfer(bob, 10), true);
+            assert_eq!(env::test::emitted_events::<Types>().count(), 3);
+        }
+
+        #[test]
+        fn destroy_work() {
+            let alice = AccountId::from([0x1; 32]);
+            let name: Text = "ChainX".as_bytes().to_vec();
+            let symbol: Text = "PCX".as_bytes().to_vec();
+            let decimals: u16 = 18;
+
+            env::test::set_caller::<Types>(alice);
+            // Deploy the contract with some `init_value`
+            let mut xrc20 = XRC20::deploy_mock(1234, name.clone(), symbol.clone(), decimals);
+            // Alice does not have enough funds for this
+            assert_eq!(xrc20.destroy(234), true);
+            assert_eq!(xrc20.balance_of(alice), 1000);
+            assert_eq!(xrc20.total_supply(), 1000);
+        }
+
     }
 
 }
+
+
