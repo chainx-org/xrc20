@@ -50,6 +50,7 @@ mod xrc20 {
     }
 
     /// The storage items for a typical XRC20 token implementation.
+    #[ink(storage)]
     struct XRC20 {
         /// The total supply.
         total_supply: storage::Value<u64>,
