@@ -31,7 +31,9 @@ mod xrc20 {
 
     #[ink(event)]
     struct Transfer {
+        #[ink(topic)]
         from: Option<AccountId>,
+        #[ink(topic)]
         to: Option<AccountId>,
         value: u64,
     }
@@ -113,7 +115,7 @@ mod xrc20 {
 
         /// Returns the symbol of the token.
         #[ink(message)]
-        fn symbol1(&self) -> Text {
+        fn symbol(&self) -> Text {
             let symbol = &*self.symbol;
             symbol.to_vec()
         }
