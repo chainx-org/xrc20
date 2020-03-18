@@ -39,7 +39,7 @@ $ cd xrc20
 # Build the wasm
 $ cargo-contract contract build
 # Generate the contract ABI
-$ cargo +nightly run -p abi-gen
+$ cargo-contract contract generate-metadata
 ```
 
 ## Local development
