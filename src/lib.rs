@@ -161,8 +161,10 @@ mod xrc20 {
             if allowance < value {
                 return false;
             }
+            let transfer  =  self.transfer_impl(from, to, value);
+            assert_eq!(transfer,false);
             self.allowances.insert((from, caller), allowance - value);
-            self.transfer_impl(from, to, value)
+            true
         }
 
         #[ink(message)]
