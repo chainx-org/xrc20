@@ -15,17 +15,11 @@ use ink_lang as ink;
 #[ink::contract(version = "0.1.0", env = DefaultXrmlTypes)]
 mod xrc20 {
     use ink_core::{
-        env::{
-            chainx_calls,
-            chainx_types::{Call},
-            DefaultXrmlTypes
-        },
+        env::{chainx_calls, chainx_types::Call, DefaultXrmlTypes},
         storage,
     };
-    use scale::{
-        Encode
-    };
     use ink_prelude::vec::Vec;
+    use scale::Encode;
 
     pub type Text = Vec<u8>;
 
@@ -76,7 +70,6 @@ mod xrc20 {
     }
 
     impl XRC20 {
-
         #[ink(constructor)]
         fn new(&mut self, init_value: u64, name: Text, symbol: Text, decimals: u16) {
             assert!(self.env().caller() != AccountId::from([0; 32]));
@@ -88,7 +81,7 @@ mod xrc20 {
             self.env().emit_event(Transfer {
                 from: None,
                 to: Some(self.env().caller()),
-                value: init_value
+                value: init_value,
             });
         }
 
@@ -148,7 +141,7 @@ mod xrc20 {
             self.env().emit_event(Approval {
                 owner: owner,
                 spender: spender,
-                value: value
+                value: value,
             });
             true
         }
@@ -161,10 +154,12 @@ mod xrc20 {
             if allowance < value {
                 return false;
             }
-            let transfer  =  self.transfer_impl(from, to, value);
-            assert_eq!(transfer,false);
-            self.allowances.insert((from, caller), allowance - value);
-            true
+            if self.transfer_impl(from, to, value) {
+                self.allowances.insert((from, caller), allowance - value);
+                true
+            } else {
+                false
+            }
         }
 
         #[ink(message)]
@@ -269,7 +264,10 @@ mod xrc20 {
             });
 
             // Convert the destoried xrc20 Token to crosschain Asset in ChainX.
-            let convert_to_asset_call = Call::XContracts(chainx_calls::XContracts::<DefaultXrmlTypes>::convert_to_asset(owner, value));
+            let convert_to_asset_call =
+                Call::XContracts(
+                    chainx_calls::XContracts::<DefaultXrmlTypes>::convert_to_asset(owner, value),
+                );
             self.env().invoke_runtime(&convert_to_asset_call);
             true
         }
@@ -315,7 +313,7 @@ mod xrc20 {
                 self.env().emit_event(Transfer {
                     from: Some(from),
                     to: Some(to),
-                    value: value
+                    value: value,
                 });
                 return true;
             }
@@ -325,16 +323,18 @@ mod xrc20 {
             self.balances.insert(to, new_balance_to);
 
             // ensure total balance is equal to before
-            assert_eq!(previous_balances, self.balance_of_or_zero(&from) + self.balance_of_or_zero(&to));
+            assert_eq!(
+                previous_balances,
+                self.balance_of_or_zero(&from) + self.balance_of_or_zero(&to)
+            );
 
             self.env().emit_event(Transfer {
                 from: Some(from),
                 to: Some(to),
-                value: value
+                value: value,
             });
             true
         }
-
     }
 
     #[cfg(all(test, feature = "test-env"))]
@@ -458,9 +458,5 @@ mod xrc20 {
             assert_eq!(xrc20.balance_of(alice), 1000);
             assert_eq!(xrc20.total_supply(), 1000);
         }
-
     }
-
 }
-
-
