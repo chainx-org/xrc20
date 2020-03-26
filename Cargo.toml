@@ -12,7 +12,13 @@ ink_prelude = { git = "https://github.com/chainx-org/ink", branch = "env-revisio
 ink_primitives = { git = "https://github.com/chainx-org/ink", branch = "env-revision3", package = "ink_primitives", default-features = false, features = ["old-codec"] }
 
 scale = { package = "parity-codec", version = "3.5", default-features = false, features = ["derive"] }
-type-metadata = { git = "https://github.com/type-metadata/type-metadata.git", default-features = false, features = ["derive"], optional = true }
+
+[dependencies.type-metadata]
+git = "https://github.com/type-metadata/type-metadata.git"
+rev = "02eae9f35c40c943b56af5b60616219f2b72b47d"
+default-features = false
+features = ["derive"]
+optional = true
 
 
 [lib]
