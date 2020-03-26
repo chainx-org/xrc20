@@ -1,13 +1,3 @@
-// Copyright 2018-2019 Parity Technologies (UK) Ltd.
-// Copyright 2018-2019 Chainpool.
-//
-// chainx xrc20 template.
-// this project is part of paritytech ink!(https://github.com/paritytech/ink)
-// ChainX add two interface `issue` and `destroy`,
-// and use chainx-org ink!(https://github.com/chainx-org/ink) instead of paritytech ink!
-//
-// this project is under GUN General Public License. see <http://www.gnu.org/licenses/>
-#![feature(proc_macro_hygiene)]
 #![cfg_attr(not(feature = "std"), no_std)]
 
 use ink_lang as ink;
@@ -15,17 +5,11 @@ use ink_lang as ink;
 #[ink::contract(version = "0.1.0", env = DefaultXrmlTypes)]
 mod xrc20 {
     use ink_core::{
-        env::{
-            chainx_calls,
-            chainx_types::{Call},
-            DefaultXrmlTypes
-        },
+        env::{chainx_calls, chainx_types::Call, DefaultXrmlTypes},
         storage,
     };
-    use scale::{
-        Encode
-    };
     use ink_prelude::vec::Vec;
+    use scale::Encode;
 
     pub type Text = Vec<u8>;
 
@@ -59,7 +43,7 @@ mod xrc20 {
 
     /// The storage items for a typical XRC20 token implementation.
     #[ink(storage)]
-    struct XRC20 {
+    struct Xrc20 {
         /// The total supply.
         total_supply: storage::Value<u64>,
         /// The Decimals of this token.
@@ -75,8 +59,7 @@ mod xrc20 {
         allowances: storage::HashMap<(AccountId, AccountId), u64>,
     }
 
-    impl XRC20 {
-
+    impl Xrc20 {
         #[ink(constructor)]
         fn new(&mut self, init_value: u64, name: Text, symbol: Text, decimals: u16) {
             assert!(self.env().caller() != AccountId::from([0; 32]));
@@ -88,22 +71,20 @@ mod xrc20 {
             self.env().emit_event(Transfer {
                 from: None,
                 to: Some(self.env().caller()),
-                value: init_value
+                value: init_value,
             });
         }
 
         /// Returns the total number of tokens in existence.
         #[ink(message)]
         fn total_supply(&self) -> u64 {
-            let total_supply = *self.total_supply;
-            total_supply
+            *self.total_supply
         }
 
         /// Returns the balance of the given AccountId.
         #[ink(message)]
         fn balance_of(&self, owner: AccountId) -> u64 {
-            let balance = self.balance_of_or_zero(&owner);
-            balance
+            self.balance_of_or_zero(&owner)
         }
 
         /// Returns the name of the token.
@@ -129,8 +110,7 @@ mod xrc20 {
         /// Returns the amount of tokens that an owner allowed to a spender.
         #[ink(message)]
         fn allowance(&self, owner: AccountId, spender: AccountId) -> u64 {
-            let allowance = self.allowance_or_zero(&owner, &spender);
-            allowance
+            self.allowance_or_zero(&owner, &spender)
         }
 
         /// Transfers token from the sender to the `to` AccountId.
@@ -146,9 +126,9 @@ mod xrc20 {
             let owner = self.env().caller();
             self.allowances.insert((owner, spender), value);
             self.env().emit_event(Approval {
-                owner: owner,
-                spender: spender,
-                value: value
+                owner,
+                spender,
+                value,
             });
             true
         }
@@ -161,10 +141,12 @@ mod xrc20 {
             if allowance < value {
                 return false;
             }
-            let transfer  =  self.transfer_impl(from, to, value);
-            assert_eq!(transfer,false);
-            self.allowances.insert((from, caller), allowance - value);
-            true
+            if self.transfer_impl(from, to, value) {
+                self.allowances.insert((from, caller), allowance - value);
+                true
+            } else {
+                false
+            }
         }
 
         #[ink(message)]
@@ -196,10 +178,7 @@ mod xrc20 {
 
             if value == 0 {
                 // before set storage
-                self.env().emit_event(Issue {
-                    to: to,
-                    value: value,
-                });
+                self.env().emit_event(Issue { to, value });
                 return true;
             }
 
@@ -211,10 +190,7 @@ mod xrc20 {
             assert_eq!(previous_total + value, *self.total_supply);
 
             // print event
-            self.env().emit_event(Issue {
-                to: to,
-                value: value,
-            });
+            self.env().emit_event(Issue { to, value });
             true
         }
 
@@ -249,10 +225,7 @@ mod xrc20 {
 
             if value == 0 {
                 // before set storage
-                self.env().emit_event(Destroy {
-                    owner: owner,
-                    value: value,
-                });
+                self.env().emit_event(Destroy { owner, value });
                 return true;
             }
 
@@ -263,14 +236,14 @@ mod xrc20 {
             assert_eq!(balance - value, self.balance_of_or_zero(&owner));
             assert_eq!(previous_total - value, *self.total_supply);
 
-            self.env().emit_event(Destroy {
-                owner: owner,
-                value: value,
-            });
+            self.env().emit_event(Destroy { owner, value });
 
             // Convert the destoried xrc20 Token to crosschain Asset in ChainX.
-            let convert_to_asset_call = Call::XContracts(chainx_calls::XContracts::<DefaultXrmlTypes>::convert_to_asset(owner, value));
-            self.env().invoke_runtime(&convert_to_asset_call);
+            let convert_to_asset_call =
+                Call::XContracts(
+                    chainx_calls::XContracts::<DefaultXrmlTypes>::convert_to_asset(owner, value),
+                );
+            let _ = self.env().invoke_runtime(&convert_to_asset_call);
             true
         }
 
@@ -315,7 +288,7 @@ mod xrc20 {
                 self.env().emit_event(Transfer {
                     from: Some(from),
                     to: Some(to),
-                    value: value
+                    value,
                 });
                 return true;
             }
@@ -325,16 +298,18 @@ mod xrc20 {
             self.balances.insert(to, new_balance_to);
 
             // ensure total balance is equal to before
-            assert_eq!(previous_balances, self.balance_of_or_zero(&from) + self.balance_of_or_zero(&to));
+            assert_eq!(
+                previous_balances,
+                self.balance_of_or_zero(&from) + self.balance_of_or_zero(&to)
+            );
 
             self.env().emit_event(Transfer {
                 from: Some(from),
                 to: Some(to),
-                value: value
+                value,
             });
             true
         }
-
     }
 
     #[cfg(all(test, feature = "test-env"))]
@@ -458,9 +433,5 @@ mod xrc20 {
             assert_eq!(xrc20.balance_of(alice), 1000);
             assert_eq!(xrc20.total_supply(), 1000);
         }
-
     }
-
 }
-
-
