@@ -96,7 +96,7 @@ mod xrc20 {
 
         /// Returns the symbol of the token.
         #[ink(message)]
-        fn symbol2(&self) -> Text {
+        fn symbol(&self) -> Text {
             let symbol = &*self.symbol;
             symbol.to_vec()
         }
