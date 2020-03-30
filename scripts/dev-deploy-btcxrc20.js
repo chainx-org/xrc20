@@ -77,7 +77,7 @@ const parseParams = (args, params) => {
                     console.log("upload and set wasm code success...", codeHash)
 
                     const method = 'instantiate'
-                    params = [0, 'ChainX XRC20-Bitcoin', 'XRC20-BTC-6', 8]
+                    params = [0, 'ChainX XRC20-Bitcoin', 'XRC20-BTC', 8]
                     parseParams(xrc20.constructors[0].args, params)
                     const selector = JSON.parse(abi.contract.constructors[0].selector)
                     const args = [
@@ -165,7 +165,7 @@ const parseParams = (args, params) => {
         let codeHash = '0xddee4f839228421da2677267b116730c0a3521796088385ed5235e333285d839'
 
         const method = 'instantiate'
-        params = [0, 'ChainX XRC20-Bitcoin', 'XRC20-BTC-7', 8]
+        params = [0, 'ChainX XRC20-Bitcoin', 'XRC20-BTC', 8]
         parseParams(xrc20.constructors[0].args, params)
         const selector = JSON.parse(abi.contract.constructors[0].selector)
         const args = [
