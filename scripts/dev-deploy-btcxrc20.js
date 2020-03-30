@@ -27,8 +27,8 @@ program
     .option('-d, --deposit [VALUE]', 'Deposit BTC to Address')
     .option('-x, --xrc [VALUE]', 'convert x-btc to xrc')
     .option('-c, --claim ', 'Claim PCX')
-    .option('-w, --wasm [WASM-PATH]', 'Path of the compiled wasm file', '/Users/qinghuan/Downloads/xrc20/target/xrc20.wasm')
-    .option('-a, --abi [ABI-PATH]', 'Path of the generated ABI file', '/Users/qinghuan/Downloads/xrc20/target/metadata.json')
+    .option('-w, --wasm [WASM-PATH]', 'Path of the compiled wasm file', './target/xrc20.wasm')
+    .option('-a, --abi [ABI-PATH]', 'Path of the generated ABI file', './target/metadata.json')
     //.option('-W, --ws [WEBSOCKET]', 'Webscoket of the ChainX node', 'ws://47.111.243.151:8187')
     .option('-W, --ws [WEBSOCKET]', 'Webscoket of the ChainX node', 'ws://127.0.0.1:8087')
     .parse(process.argv);
