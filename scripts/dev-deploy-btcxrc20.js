@@ -22,7 +22,7 @@ const { Abi } = require('@chainx/api-contract');
 
 program
     .version('0.1.0')
-    .option('-s, --set ', 'Set BTC Xrc20 Address')
+    .option('-s, --set [PRIVATEKEY]', 'Set BTC Xrc20 Address', '0xabf8e5bdbe30c65656c0a3cbd181ff8a56294a69dfedd27982aace4a76909115')
     .option('-y, --deploy', 'sigal deploy contract')
     .option('-d, --deposit [VALUE]', 'Deposit BTC to Address')
     .option('-x, --xrc [VALUE]', 'convert x-btc to xrc')
@@ -49,10 +49,10 @@ const parseParams = (args, params) => {
     var wasmPath = program.wasm
     var abiPath = program.abi
     var websocket = program.ws
-
+    var alicePrikey = program.set
     // prikey for alice
     // this prikey's pubkey is: 0x88dc3417d5058ec4b4503e0c12ea1a0a89be200fe98922423d4334014fa6b0ee
-    const alicePrikey = '0xabf8e5bdbe30c65656c0a3cbd181ff8a56294a69dfedd27982aace4a76909115'
+    // default alice key is:  0xabf8e5bdbe30c65656c0a3cbd181ff8a56294a69dfedd27982aace4a76909115
     // xrc20 wasm file and related abi
     var wasm = fs.readFileSync(wasmPath)
     var abi = require(abiPath)
@@ -70,7 +70,6 @@ const parseParams = (args, params) => {
                 process.exit(0);
             }
             console.log(response)
-
             for (var i = 0; response && response.events && (i < response.events.length); i++) {
                 if ('CodeStored' == response.events[i].method) {
                     let codeHash = response.events[i].event.data[0]
@@ -163,7 +162,6 @@ const parseParams = (args, params) => {
     } else if (program.deploy) {
         //code hash, only deploy
         let codeHash = '0xddee4f839228421da2677267b116730c0a3521796088385ed5235e333285d839'
-
         const method = 'instantiate'
         params = [0, 'ChainX XRC20-Bitcoin', 'XRC20-BTC', 8]
         parseParams(xrc20.constructors[0].args, params)
