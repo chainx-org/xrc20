@@ -22,6 +22,8 @@ const { Abi } = require('@chainx/api-contract');
 
 program
     .version('0.1.0')
+    // this default prikey's pubkey is: 0x88dc3417d5058ec4b4503e0c12ea1a0a89be200fe98922423d4334014fa6b0ee
+    // default alice key is:  0xabf8e5bdbe30c65656c0a3cbd181ff8a56294a69dfedd27982aace4a76909115
     .option('-s, --set [PRIVATEKEY]', 'Set BTC Xrc20 Address', '0xabf8e5bdbe30c65656c0a3cbd181ff8a56294a69dfedd27982aace4a76909115')
     .option('-y, --deploy', 'sigal deploy contract')
     .option('-d, --deposit [VALUE]', 'Deposit BTC to Address')
