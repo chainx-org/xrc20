@@ -25,9 +25,11 @@ program
     .option('-s, --set ', 'Set BTC Xrc20 Address')
     .option('-y, --deploy', 'sigal deploy contract')
     .option('-d, --deposit [VALUE]', 'Deposit BTC to Address')
+    .option('-x, --xrc [VALUE]', 'convert x-btc to xrc')
     .option('-c, --claim ', 'Claim PCX')
     .option('-w, --wasm [WASM-PATH]', 'Path of the compiled wasm file', '/Users/qinghuan/Downloads/xrc20/target/xrc20.wasm')
     .option('-a, --abi [ABI-PATH]', 'Path of the generated ABI file', '/Users/qinghuan/Downloads/xrc20/target/metadata.json')
+    //.option('-W, --ws [WEBSOCKET]', 'Webscoket of the ChainX node', 'ws://47.111.243.151:8187')
     .option('-W, --ws [WEBSOCKET]', 'Webscoket of the ChainX node', 'ws://127.0.0.1:8087')
     .parse(process.argv);
 
@@ -160,7 +162,7 @@ const parseParams = (args, params) => {
         })
     } else if (program.deploy) {
         //code hash, only deploy
-        let codeHash = '0xd71d75d5cb24bddfa7d06c638f1b48ad43f8819ce927a714bed0db985dcf5348'
+        let codeHash = '0xddee4f839228421da2677267b116730c0a3521796088385ed5235e333285d839'
 
         const method = 'instantiate'
         params = [0, 'ChainX XRC20-Bitcoin', 'XRC20-BTC-7', 8]
