@@ -122,7 +122,7 @@ async function uploadContract(chainx, wasm, gasLimit, Alice) {
         ex.signAndSend(Alice, (error, response) => {
             //console.log(response)
             for (var i = 0; response && response.events && (i < response.events.length); i++) {
-                if ('ExtrinsicSuccess' == response.events[i].method) {
+                if ('CodeStored' == response.events[i].method) {
                     console.log("upload contract success...", response.events[i].event.data[0])
                     reslove(response.events[i].event.data[0])
                 } else if ('ExtrinsicFailed' == response.events[i].method) {
