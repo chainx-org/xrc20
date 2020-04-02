@@ -221,7 +221,9 @@ async function init(chainx, alicePrikey) {
 
         await chainx.isRpcReady();
         if (program.set) {
+            // init contract， check balance, check if contract have been uploaded already
             await init(chainx, alicePrikey)
+            // upload contract
             let codehash = await uploadContract(chainx, wasm, gasLimit, alicePrikey).then(
                 res => {
                     if (!res) {
@@ -234,14 +236,18 @@ async function init(chainx, alicePrikey) {
                 console.log(err)
                 process.exit(0);
             })
+            // print contract codehash
             console.log('codehash :', codehash)
+            // contract deploy params
             params = [0, 'ChainX XRC20-Bitcoin', 'XRC20-BTC', 8]
+            // deploy contract 
             let contract_address = await deploy(chainx, abi, codehash, params, 0, gasLimit, alicePrikey).then(
                 res => { return res }
             ).catch(err => {
                 console.log(err)
                 process.exit(0);
             })
+            //get contract address
             console.log('contract address: ', contract_address)
             // notice the selector must match abi.json(or old_abi.json), hex format
             if (contract_address) {
