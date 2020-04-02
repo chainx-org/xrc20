@@ -5,11 +5,11 @@ authors = ["Chainpool"]
 edition = "2018"
 
 [dependencies]
-ink_abi = { git = "https://github.com/chainx-org/ink", branch = "env-revision3", package = "ink_abi", default-features = false, features = ["derive"], optional = true }
-ink_primitives = { git = "https://github.com/chainx-org/ink", branch = "env-revision3", package = "ink_primitives", default-features = false, features = ["old-codec"] }
-ink_core = { git = "https://github.com/chainx-org/ink", branch = "env-revision3", package = "ink_core", default-features = false, features = ["old-codec"] }
-ink_lang = { git = "https://github.com/chainx-org/ink", branch = "env-revision3", package = "ink_lang", default-features = false, features = ["old-codec"] }
-ink_prelude = { git = "https://github.com/chainx-org/ink", branch = "env-revision3", package = "ink_prelude", default-features = false }
+ink_abi = { git = "https://github.com/chainx-org/ink", package = "ink_abi", default-features = false, features = ["derive"], optional = true }
+ink_primitives = { git = "https://github.com/chainx-org/ink", package = "ink_primitives", default-features = false, features = ["old-codec"] }
+ink_core = { git = "https://github.com/chainx-org/ink", package = "ink_core", default-features = false, features = ["old-codec"] }
+ink_lang = { git = "https://github.com/chainx-org/ink", package = "ink_lang", default-features = false, features = ["old-codec"] }
+ink_prelude = { git = "https://github.com/chainx-org/ink", package = "ink_prelude", default-features = false }
 
 scale = { package = "parity-codec", version = "3.5", default-features = false, features = ["derive"] }
 
