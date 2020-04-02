@@ -5,6 +5,7 @@ XRC20 is a special smart contract based on the ERC20 standard, used for converti
 <!-- TOC GFM -->
 
 * [Build](#build)
+    * [Docker](#docker)
     * [`cargo-contract`](#cargo-contract)
     * [Build the contract](#build-the-contract)
 * [Local development](#local-development)
@@ -12,6 +13,25 @@ XRC20 is a special smart contract based on the ERC20 standard, used for converti
 <!-- /TOC -->
 
 ## Build
+
+### Docker
+
+The compiled wasm is different on different computers, even they are using the same OS and same source file. Using Docker which provides the required environment for building a contract can guarantee you can always get the same wasm file per ink contract.
+
+```bash
+$ docker run --rm -v "$PWD":/build -w /build chainxorg/contract-builder:v0.6.0 cargo contract build
+ [1/4] Collecting crate metadata
+ [2/4] Building cargo project
+    Finished release [optimized] target(s) in 1.08s
+ [3/4] Post processing wasm file
+ [4/4] Optimizing wasm file
+ Original wasm size: 53.2K, Optimized: 34.6K
+
+Your contract is ready. You can find it here:
+/build/target/xrc20.wasm
+
+# Now the complied wasm file is in your local directory target/xrc20.wasm.
+```
 
 ### `cargo-contract`
 
@@ -51,7 +71,7 @@ $ cd scripts
 $ npm install commander chainx.js
 ```
 
-Make sure you have built the XRC20 contract, i.e., xrc20.wasm and abi.json are present in target directory. Otherwise you have specify the wasm and abi path, see `./scripts/dev-deploy-btcxrc20.js --help`. Then you 
+Make sure you have built the XRC20 contract, i.e., xrc20.wasm and abi.json are present in target directory. Otherwise you have specify the wasm and abi path, see `./scripts/dev-deploy-btcxrc20.js --help`. Then you
 then developer could execute the script to set XRC20 for X-BTC or deposit some fake X-BTC token to an account
 
 ```bash
