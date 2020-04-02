@@ -48,7 +48,7 @@ Before playing around with asset ChainX XBTC using the smart contract, you have 
 
 ```bash
 $ cd scripts
-$ npm install commander chainx.js
+$ npm install commander chainx.js --save
 ```
 
 Make sure you have built the XRC20 contract, i.e., xrc20.wasm and abi.json are present in target directory. Otherwise you have specify the wasm and abi path, see `./scripts/dev-deploy-btcxrc20.js --help`. Then you 
