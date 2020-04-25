@@ -57,6 +57,10 @@ mod xrc20 {
         balances: storage::HashMap<AccountId, u64>,
         /// u64s that are spendable by non-owners: (owner, spender) -> allowed
         allowances: storage::HashMap<(AccountId, AccountId), u64>,
+        // owner
+        stop_signal: storage::Value<bool>,
+        // delegate someone
+        delegate_emergency: storage::Value<AccountId>,
     }
 
     impl Xrc20 {
@@ -68,6 +72,8 @@ mod xrc20 {
             self.symbol.set(symbol);
             self.decimals.set(decimals);
             self.balances.insert(self.env().caller(), init_value);
+            self.stop_signal.insert(false);
+            self.delegate_emergency.insert(self.env().caller());
             self.env().emit_event(Transfer {
                 from: None,
                 to: Some(self.env().caller()),
@@ -107,6 +113,23 @@ mod xrc20 {
             *self.decimals
         }
 
+        /// delegate
+        #[ink(message)]
+        fn delegate_emergency_right(&self, to: AccountId) -> u64 {
+            //notice only contract instance can delegate emergency rights
+            assert!(to != AccountId::from([0; 32]));
+            assert_eq!(self.env().account_id(), self.env().caller());
+            self.delegate_emergency.insert(to);
+        }
+
+        //stop
+        #[ink(message)]
+        fn emergency_stop(&self, signal: bool) {
+            let caller = self.env().caller();
+            assert_eq!(caller, self.delegate_emergency);
+            self.stop_signal.insert(signal)
+        }
+
         /// Returns the amount of tokens that an owner allowed to a spender.
         #[ink(message)]
         fn allowance(&self, owner: AccountId, spender: AccountId) -> u64 {
@@ -116,6 +139,7 @@ mod xrc20 {
         /// Transfers token from the sender to the `to` AccountId.
         #[ink(message)]
         fn transfer(&mut self, to: AccountId, value: u64) -> bool {
+            assert_eq!(self.stop_signal, true)
             self.transfer_impl(self.env().caller(), to, value)
         }
 
@@ -136,6 +160,7 @@ mod xrc20 {
         /// Transfer tokens from one AccountId to another.
         #[ink(message)]
         fn transfer_from(&mut self, from: AccountId, to: AccountId, value: u64) -> bool {
+            assert_eq!(self.stop_signal, true)
             let caller = self.env().caller();
             let allowance = self.allowance_or_zero(&from, &caller);
             if allowance < value {
