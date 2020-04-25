@@ -115,10 +115,12 @@ mod xrc20 {
 
         /// delegate
         #[ink(message)]
-        fn delegate_emergency_right(&self, to: AccountId) -> u64 {
-            //notice only contract instance can delegate emergency rights
-            assert!(to != AccountId::from([0; 32]));
-            assert_eq!(self.env().account_id(), self.env().caller());
+        fn delegate_emergency_right(&self, to: AccountId) {
+            // only delegate account can transfer rights
+            assert_eq!(self.env().caller(), self.delegate_emergency);
+            // self-delegation is disallowed.
+            assert_eq!(to, self.delegate_emergency);
+            
             self.delegate_emergency.insert(to);
         }
 
